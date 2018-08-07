@@ -1,74 +1,54 @@
 //
-//  BLCollectionNodeBoilerplate.m
-//  BLKit
+//  HHCollectionNodeBoilerplate.m
+//  HHListKit
 //
-//  Created by 黄泽宇 on 17/03/2018.
+//  Created by shelllhue on 17/03/2018.
 //
 
-#import "BLCollectionNodeWrapper.h"
+#import "HHCollectionNodeWrapper.h"
 #import <AsyncDisplayKit/AsyncDisplayKit.h>
-#import "BLBaseCellNode.h"
-#import "extobjc.h"
-#import "UIColor+BLKit.h"
+#import "HHCellNode.h"
 #import "Aspects.h"
 
-typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
+typedef void (^HHCollectionNodeBatchUpdatingBlock)(BOOL finished);
 
-@interface BLCollectionNodeWrapper () <ASCollectionDelegate, ASCollectionDataSource> {
+@interface HHCollectionNodeWrapper () <ASCollectionDelegate, ASCollectionDataSource> {
     CFRunLoopObserverRef _runLoopObserver;
 }
 @property (nonatomic, weak) id <ASCollectionDelegate> collectionNodeDelegate;
 @property (nonatomic, weak) id <ASCollectionDataSource> collectionDataSource;
-@property (nonatomic) BLSectionController *sectionController;
-@property (nonatomic, weak) UIViewController *contextVC;
-@property (nonatomic) NSMutableArray<NSIndexPath *> *reloadedIndexPathes;
-/**
- 是否高亮点击
- */
-@property (nonatomic) BOOL shouldHighlightSelecting;
+@property (nonatomic, strong) HHSectionController *sectionController;
+@property (nonatomic, weak) UIViewController *containingVC;
+@property (nonatomic, strong) NSMutableArray<NSIndexPath *> *reloadedIndexPathes;
 
-/**
- 是否正在更新
- */
-@property (nonatomic) BOOL isPerformUpdating;
-
-/**
- 是否有人等待更新
- */
-@property (nonatomic) BOOL waitingForUpdating;
-
-/**
- 排队等待更新的完成回调
- */
-@property (nonatomic) NSMutableArray<BLCollectionNodeCompletionBlock> *completionBlocks;
-
-/**
- 最近一次等待请求的动画选项，是否需要动画
- */
-@property (nonatomic) BOOL lastestWaitingAnimatingOption;
+@property (nonatomic, assign) BOOL shouldHighlightSelecting;
+@property (nonatomic, assign) BOOL isPerformUpdating;
+@property (nonatomic, assign) BOOL waitingForUpdating;
+@property (nonatomic, assign) BOOL lastestWaitingAnimatingOption;
+@property (nonatomic, strong) NSMutableArray<HHCollectionNodeUpdateCompletion> *completionBlocks;
 
 @end
 
-@implementation BLCollectionNodeWrapper
+@implementation HHCollectionNodeWrapper
 #pragma mark - init
 - (void)dealloc {
     [self disableAutoupdate];
 }
 
-- (instancetype)initWithSectionController:(BLSectionController *)sectionController
-                    contextViewController:(UIViewController *)contextVC
+- (instancetype)initWithSectionController:(HHSectionController *)sectionController
+                    containingViewController:(UIViewController *)containingVC
                    collectionNodeDelegate:(id <ASCollectionDelegate>)delegate
                      collectionDataSource:(id <ASCollectionDataSource>)dataSource {
     NSParameterAssert((id)delegate == (id)dataSource);
     NSParameterAssert(sectionController);
-    NSParameterAssert(contextVC);
+    NSParameterAssert(containingVC);
 
     self = [super init];
     if (self) {
         _sectionController = sectionController;
         _collectionDataSource = dataSource;
         _collectionNodeDelegate = delegate;
-        _contextVC = contextVC;
+        _containingVC = containingVC;
         _completionBlocks = [@[] mutableCopy];
         _reloadedIndexPathes = [@[] mutableCopy];
         
@@ -85,11 +65,10 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
             node.dataSource = self;
             node.leadingScreensForBatching = 4;
             node.frame = UIScreen.mainScreen.bounds;
-            @weakify(self);
-
+            
+            HHCollectionNodeWrapper * __weak weakSelf = self;
             [node.view aspect_hookSelector:@selector(reloadData) withOptions:AspectPositionInstead usingBlock:^{
-                @strongify(self);
-                [self reloadData];
+                [weakSelf reloadData];
             } error:nil];
             
             node;
@@ -105,7 +84,6 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
 }
 
 #pragma mark - selector forward
-
 - (id)forwardingTargetForSelector:(SEL)aSelector {
     return self.collectionNodeDelegate;
 }
@@ -134,37 +112,37 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
     if ([self.collectionDataSource respondsToSelector:@selector(collectionNode:nodeBlockForItemAtIndexPath:)]) {
         return [self.collectionDataSource collectionNode:collectionNode nodeBlockForItemAtIndexPath:indexPath];
     }
-    /* collection node perform batch update 是异步的，在perform batch update过程中，
-     section controller 数据会变化，因此经常奔溃，但perform batch update在异步开始前，
-     collection node会先准备所有数据，此时必须提取出section controller 的数据，让 block
-     捕捉，从而防止异步过程中section controller数据变化导致的崩溃
+    /**
+     * When collection node performs batch update, it first calls this method on main thread synchronizely,
+     * and then store all he node blocks. The stored node blocks will be executed on background
+     * thread asynchronizely during drawing. Since data can change between the storing and
+     * executing of node blocks, all the data should be fetched before storing of node blocks
+     * and then catched by the node blocks. Otherwise, it will crash.
      */
-    BLCollectionNodeWrapper * __weak weakSelf = self;
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
-    id <BLCellNodeViewModelProtocol> model = [self.sectionController modelForIndexPath:indexPath];
+    HHCollectionNodeWrapper * __weak weakSelf = self;
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
+    id <HHCellNodeModelProtocol> model = [self.sectionController modelForIndexPath:indexPath];
     if (model) {
         model = sectionModel.models[indexPath.row]; // 保证model 一定是从section model中获取
     }
     BOOL isFirstCell = [self.sectionController isFirstCellOfIndexPath:indexPath];
     BOOL isLastCell = [self.sectionController isLastCellOfIndexPath:indexPath];
+    UIView *selectedBackgroundView = [UIView new];
+    selectedBackgroundView.backgroundColor = [UIColor colorWithRed:216.f / 255.f green:216.f / 255.f blue:216.f / 255.f alpha:1];
+    selectedBackgroundView.frame = self.collectionNode.frame;
     return ^ASCellNode *(){
-        BLCollectionNodeWrapper *this = weakSelf;
-        if ([model respondsToSelector:@selector(cellNodeDelegate)] && ![model cellNodeDelegate] && [model respondsToSelector:@selector(setCellNodeDelegate:)]) {
-            model.cellNodeDelegate = this.contextVC;
-        }
-        
-        BLCellNode *cell;
-        NSAssert([model respondsToSelector:@selector(cellNode)] || sectionModel.cellNodeCreatorBlock, @"model 和section model不能都不提供cell node");
-        if ([model respondsToSelector:@selector(cellNode)]) {
-            cell = [model cellNode];
-        } else {
-            cell = sectionModel.cellNodeCreatorBlock(model, indexPath);
+        HHCollectionNodeWrapper *this = weakSelf;
+
+        HHCellNode *cell;
+        NSAssert([model respondsToSelector:@selector(cellNodeBlock)] || sectionModel.cellNodeBlock, @"None of model or section model provides cell node creator block");
+        if ([model respondsToSelector:@selector(cellNodeBlock)]) {
+            cell = model.cellNodeBlock(this.containingVC);
+        } else if (sectionModel.cellNodeBlock) {
+            cell = sectionModel.cellNodeBlock(model, this.containingVC);
         }
         cell.isFirstCell = isFirstCell;
         cell.isLastCell = isLastCell;
         if (this.shouldHighlightSelecting && !cell.selectedBackgroundView) {
-            UIView *selectedBackgroundView = [UIView new];
-            selectedBackgroundView.backgroundColor = UIColor.bl_216_216_216;
             cell.selectedBackgroundView = selectedBackgroundView;
         }
         
@@ -176,11 +154,11 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
                 [cell invalidateCalculatedLayout];
             });
         }
-        if ([cell isKindOfClass:[BLBaseCellNode class]]) {
-            [(BLBaseCellNode *)cell configureWithModel:model];
+        if ([cell isKindOfClass:[HHCellNode class]]) {
+            [(HHCellNode *)cell hh_configureWithModel:model];
         }
         NSAssert(cell, @"cell 不能为空");
-        cell = cell ?: [BLCellNode new];
+        cell = cell ?: [HHCellNode new];
         return cell;
     };
 }
@@ -191,12 +169,12 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         return;
     }
     [collectionNode deselectItemAtIndexPath:indexPath animated:YES];
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
-    id <BLCellNodeViewModelProtocol> model = [self.sectionController modelForIndexPath:indexPath];
-    if ([model respondsToSelector:@selector(tapAction)] && model.tapAction) {
-        model.tapAction(self.contextVC, model);
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
+    id <HHCellNodeModelProtocol> model = [self.sectionController modelForIndexPath:indexPath];
+    if ([model respondsToSelector:@selector(cellNodeTapAction)]) {
+        model.cellNodeTapAction(self.containingVC);
     } else if (sectionModel.cellNodeTapAction) {
-        sectionModel.cellNodeTapAction(self.contextVC, model, indexPath);
+        sectionModel.cellNodeTapAction(model, self.containingVC);
     }
 }
 
@@ -216,35 +194,35 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         return [self.collectionDataSource collectionNode:collectionNode
                        nodeForSupplementaryElementOfKind:kind atIndexPath:indexPath];
     }
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:indexPath.section];
     
     if (kind == UICollectionElementKindSectionHeader) {
-        if (sectionModel.headerType == BLSectionModelFooterHeaderTypeFixHeightSpacer) {
+        if (sectionModel.headerType == HHSectionModelFooterHeaderTypeFixedHeightSpacer) {
             ASCellNode *header = [ASCellNode new];
             if (@available(iOS 11.0, *)) {
                 header.layer.zPosition = 0;
             }
             header.backgroundColor = sectionModel.headerSpacerColor;
             return  header;
-        } else if (sectionModel.headerType == BLSectionModelFooterHeaderTypeFixHeightNode) {
+        } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
             if (@available(iOS 11.0, *)) {
                 sectionModel.header.layer.zPosition = 0;
             }
             return  sectionModel.header;
-        } else if (sectionModel.headerType == BLSectionModelFooterHeaderTypeSelfCalculateHeightNode) {
+        } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
             if (@available(iOS 11.0, *)) {
                 sectionModel.header.layer.zPosition = 0;
             }
             return  sectionModel.header;
         }
     } else if (kind == UICollectionElementKindSectionFooter) {
-        if (sectionModel.footerType == BLSectionModelFooterHeaderTypeFixHeightSpacer) {
+        if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightSpacer) {
             ASCellNode *footer = [ASCellNode new];
             footer.backgroundColor = sectionModel.footerSpacerColor;
             return  footer;
-        } else if (sectionModel.footerType == BLSectionModelFooterHeaderTypeFixHeightNode) {
+        } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
             return  sectionModel.footer;
-        } else if (sectionModel.footerType == BLSectionModelFooterHeaderTypeSelfCalculateHeightNode) {
+        } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
             return  sectionModel.footer;
         }
     }
@@ -283,12 +261,12 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
     if ([flowLayoutDelegate respondsToSelector:@selector(collectionNode:sizeRangeForHeaderInSection:)]) {
         return [flowLayoutDelegate collectionNode:collectionNode sizeRangeForHeaderInSection:section];
     }
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
-    if (sectionModel.headerType == BLSectionModelFooterHeaderTypeFixHeightSpacer) {
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
+    if (sectionModel.headerType == HHSectionModelFooterHeaderTypeFixedHeightSpacer) {
         return  ASSizeRangeMake(CGSizeMake(collectionNode.frame.size.width, sectionModel.headerHeight));
-    } else if (sectionModel.headerType == BLSectionModelFooterHeaderTypeFixHeightNode) {
+    } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
         return  ASSizeRangeMake(CGSizeMake(collectionNode.frame.size.width, sectionModel.headerHeight));
-    } else if (sectionModel.headerType == BLSectionModelFooterHeaderTypeSelfCalculateHeightNode) {
+    } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
         CGSize minItemSize = CGSizeMake(CGRectGetWidth(collectionNode.frame), 0);
         CGSize maxItemSize = CGSizeMake(CGRectGetWidth(collectionNode.frame), INFINITY);
         
@@ -304,12 +282,12 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         return [flowLayoutDelegate collectionNode:collectionNode sizeRangeForFooterInSection:section];
     }
     
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
-    if (sectionModel.footerType == BLSectionModelFooterHeaderTypeFixHeightSpacer) {
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
+    if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightSpacer) {
         return  ASSizeRangeMake(CGSizeMake(collectionNode.frame.size.width, sectionModel.footerHeight));
-    } else if (sectionModel.footerType == BLSectionModelFooterHeaderTypeFixHeightNode) {
+    } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
         return  ASSizeRangeMake(CGSizeMake(collectionNode.frame.size.width, sectionModel.footerHeight));
-    } else if (sectionModel.footerType == BLSectionModelFooterHeaderTypeSelfCalculateHeightNode) {
+    } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
         CGSize minItemSize = CGSizeMake(CGRectGetWidth(collectionNode.frame), 0);
         CGSize maxItemSize = CGSizeMake(CGRectGetWidth(collectionNode.frame), INFINITY);
         
@@ -324,24 +302,24 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         return [self.collectionDataSource collectionNode:collectionNode supplementaryElementKindsInSection:section];
     }
     
-    BLSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
+    HHSectionModel *sectionModel = [self.sectionController sectionModelForSection:section];
     NSMutableArray *kinds = [@[] mutableCopy];
-    if (sectionModel.headerType != BLSectionModelFooterHeaderTypeNone) {
+    if (sectionModel.headerType != HHSectionModelFooterHeaderTypeNone) {
         [kinds addObject:UICollectionElementKindSectionHeader];
     }
     
-    if (sectionModel.footerType != BLSectionModelFooterHeaderTypeNone) {
+    if (sectionModel.footerType != HHSectionModelFooterHeaderTypeNone) {
         [kinds addObject:UICollectionElementKindSectionFooter];
     }
     return kinds;
 }
 
 #pragma mark - config
-- (void)enableSelectHighlight {
+- (void)enableSelectingHighlight {
     self.shouldHighlightSelecting = YES;
 }
 
-- (void)disableSelectHighlight {
+- (void)disableSelectingHighlight {
     self.shouldHighlightSelecting = NO;
 }
 
@@ -357,8 +335,8 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
     if (_runLoopObserver) {
         return;
     }
-    // 添加runloop自动监听
-    BLCollectionNodeWrapper * __weak weakSelf = self;
+    // add runloop monitor
+    HHCollectionNodeWrapper * __weak weakSelf = self;
     _runLoopObserver = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopBeforeWaiting | kCFRunLoopExit, YES, 0, ^(CFRunLoopObserverRef observer, CFRunLoopActivity activity) {
         [weakSelf performUpdates];
     });
@@ -366,20 +344,20 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
     CFRunLoopAddObserver(CFRunLoopGetMain(), _runLoopObserver,  kCFRunLoopCommonModes);
 }
 
-#pragma mark - ui update 操作
-- (void)reloadSections:(NSArray<BLSectionModel *>*)sectionModels {
+#pragma mark - ui updating
+- (void)reloadSections:(NSArray<HHSectionModel *>*)sectionModels {
     if (!sectionModels.count) {
         return;
     }
     
-    [sectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [sectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         [self.sectionController markSectionModelNeedsReload:obj];
     }];
     [self performUpdatesWithAnimated:YES];
 }
 
-- (void)performUpdatesWithAnimated:(BOOL)animated completion:(nullable BLCollectionNodeCompletionBlock)completion {
-    NSAssert([NSThread isMainThread], @"必须在主线程");
+- (void)performUpdatesWithAnimated:(BOOL)animated completion:(nullable HHCollectionNodeUpdateCompletion)completion {
+    NSAssert(NSThread.isMainThread, @"Should be called on main thread!");
     if (completion) {
         [self.completionBlocks addObject:completion];
     }
@@ -396,7 +374,7 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         return;
     }
     self.isPerformUpdating = YES;
-    NSAssert(NSThread.isMainThread, @"必须在主线程调用");
+    NSAssert(NSThread.isMainThread, @"Should be called on main thread!");
     [self.collectionNode waitUntilAllUpdatesAreProcessed];
     if (!self.sectionController.isDataChanged) {
         [self didFinishUpdatingWithFinished:YES];
@@ -429,7 +407,7 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
 }
 
 - (void)didFinishUpdatingWithFinished:(BOOL)finished {
-    NSAssert(NSThread.isMainThread, @"必须在主线程调用");
+    NSAssert(NSThread.isMainThread, @"Should be called on main thread!");
     self.isPerformUpdating = NO;
     [self.reloadedIndexPathes removeAllObjects];
     if (self.waitingForUpdating) {
@@ -437,7 +415,7 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
         [self _performUpdatesWithAnimated:self.lastestWaitingAnimatingOption];
         return;
     }
-    [self.completionBlocks enumerateObjectsUsingBlock:^(BLCollectionNodeCompletionBlock  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.completionBlocks enumerateObjectsUsingBlock:^(HHCollectionNodeUpdateCompletion  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         obj(finished);
     }];
     [self.completionBlocks removeAllObjects];
@@ -462,7 +440,6 @@ typedef void (^BLCollectionNodeBatchUpdatingBlock)(BOOL finished);
             }
         }];
     }
-
 }
 
 - (void)performUpdatesWithAnimated:(BOOL)animated {

@@ -1,40 +1,26 @@
 //
-//  BLSectionController.m
-//  BLKit
+//  HHSectionController.m
+//  HHListKit
 //
-//  Created by 黄泽宇 on 06/03/2018.
+//  Created by shelllhue on 06/03/2018.
 //
 
-#import "BLSectionController.h"
-#import "BLDataMonitor.h"
-#import "BLCellNodeViewModel.h"
+#import "HHSectionController.h"
+#import "HHDataMonitor.h"
 
-@interface BLSectionController ()
-
-/**
- 已经显示到屏幕上的section
- */
-@property (nonatomic, nullable, copy) NSArray<BLSectionModel *> *shownSectionModels;
-
-/**
- 即将同步到屏幕显示的sections，同步到UI后，置nil
- */
-@property (nonatomic, nullable, copy) NSArray<BLSectionModel *> *toBeSynchronizedSectionModels;
-
-/**
- 内部最新的section models，反应当前最新的section状态
- */
-@property (nonatomic) NSMutableArray<BLSectionModel *> *internalSectionModels;
-
-@property (nonatomic) BLDataMonitor *dataMonitor;
+@interface HHSectionController ()
+@property (nonatomic, copy, nullable) NSArray<HHSectionModel *> *shownSectionModels;
+@property (nonatomic, copy, nullable) NSArray<HHSectionModel *> *toBeSynchronizedSectionModels;
+@property (nonatomic, strong) NSMutableArray<HHSectionModel *> *internalSectionModels;
+@property (nonatomic, strong) HHDataMonitor *dataMonitor;
 
 @end
-@implementation BLSectionController
+@implementation HHSectionController
 - (instancetype)init {
     self = [super init];
     if (self) {
         _internalSectionModels = [@[] mutableCopy];
-        _dataMonitor = [[BLDataMonitor alloc] initWithMonitoredModels:self.internalSectionModels];
+        _dataMonitor = [[HHDataMonitor alloc] initWithMonitoredModels:self.internalSectionModels];
     }
     return self;
 }
@@ -42,13 +28,13 @@
 #pragma mark - section model mutating
 
 - (void)clearAllSections {
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        [self.dataMonitor operateModel:obj operationType:BLSectionModelOperationTypeDelete];
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [self.dataMonitor operateModel:obj operationType:HHDataOperationTypeDelete];
     }];
     [self.internalSectionModels removeAllObjects];
 }
 
-- (void)appendSectionModel:(BLSectionModel *)sectionModel {
+- (void)appendSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel) {
         return;
     }
@@ -56,10 +42,10 @@
         return;
     }
     [self.internalSectionModels addObject:sectionModel];
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeInsert];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeInsert];
 }
 
-- (void)deleteSectionModel:(BLSectionModel *)sectionModel {
+- (void)deleteSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel) {
         return;
     }
@@ -67,42 +53,42 @@
         return;
     }
     [self.internalSectionModels removeObject:sectionModel];
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeDelete];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeDelete];
 
 }
 
-- (void)markSectionModelNeedsReload:(BLSectionModel *)sectionModel {
+- (void)markSectionModelNeedsReload:(HHSectionModel *)sectionModel {
     if (!sectionModel) {
         return;
     }
     if (![self sectionExists:sectionModel]) {
         return;
     }
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeUpdate];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeUpdate];
 }
 
-- (void)appendNewModels:(NSArray<id <BLCellNodeViewModelProtocol>> *)models forSectionModel:(BLSectionModel *)sectionModel {
+- (void)appendNewModels:(NSArray<id <HHCellNodeModelProtocol>> *)models forSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel || !models.count) {
         return;
     }
     [sectionModel appendNewModels:models];
 }
 
-- (void)deleteModel:(id <BLCellNodeViewModelProtocol>)model fromSectionModel:(BLSectionModel *)sectionModel {
+- (void)deleteModel:(id <HHCellNodeModelProtocol>)model fromSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel || !model) {
         return;
     }
     [sectionModel deleteModel:model];
 }
 
-- (void)deleteModels:(NSArray<id <BLCellNodeViewModelProtocol>> *)models fromSectionModel:(BLSectionModel *)sectionModel {
+- (void)deleteModels:(NSArray<id <HHCellNodeModelProtocol>> *)models fromSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel || !models.count) {
         return;
     }
     [sectionModel deleteModels:models];
 }
 
-- (void)insertSectionModel:(BLSectionModel *)sectionModel atIndex:(NSInteger)index {
+- (void)insertSectionModel:(HHSectionModel *)sectionModel atIndex:(NSInteger)index {
     if (!sectionModel) {
         return;
     }
@@ -113,10 +99,10 @@
         return;
     }
     [self.internalSectionModels insertObject:sectionModel atIndex:index];
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeInsert];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeInsert];
 }
 
-- (void)insertSectionModel:(BLSectionModel *)sectionModel beforeModel:(BLSectionModel *)sectionModel2 {
+- (void)insertSectionModel:(HHSectionModel *)sectionModel beforeModel:(HHSectionModel *)sectionModel2 {
     if (!sectionModel || !sectionModel2) {
         return;
     }
@@ -125,11 +111,11 @@
     }
     NSInteger index = [self sectionForSectionModel:sectionModel2];
     [self.internalSectionModels insertObject:sectionModel atIndex:index];
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeInsert];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeInsert];
 
 }
 
-- (void)insertSectionModel:(BLSectionModel *)sectionModel afterModel:(BLSectionModel *)sectionModel2 {
+- (void)insertSectionModel:(HHSectionModel *)sectionModel afterModel:(HHSectionModel *)sectionModel2 {
     if (!sectionModel || !sectionModel2) {
         return;
     }
@@ -142,14 +128,14 @@
     } else {
         [self.internalSectionModels insertObject:sectionModel atIndex:index + 1];
     }
-    [self.dataMonitor operateModel:sectionModel operationType:BLSectionModelOperationTypeInsert];
+    [self.dataMonitor operateModel:sectionModel operationType:HHDataOperationTypeInsert];
 }
 
 #pragma mark - data query
 
 - (BOOL)isEmpty {
     BOOL isEmpty = YES;
-    for(BLSectionModel *model in self.sectionModels){
+    for(HHSectionModel *model in self.sectionModels){
         if(model.models.count){
            isEmpty = NO;
             break;
@@ -158,7 +144,7 @@
     return isEmpty;
 }
 
-- (nullable NSIndexPath *)indexPathForModel:(id <BLCellNodeViewModelProtocol>)model inSectionModel:(BLSectionModel *)sectionModel {
+- (nullable NSIndexPath *)indexPathForModel:(id <HHCellNodeModelProtocol>)model inSectionModel:(HHSectionModel *)sectionModel {
     NSInteger section = [self sectionForSectionModel:sectionModel];
     NSInteger index = [sectionModel indexForModel:model];
     if (section == NSNotFound || index == NSNotFound) {
@@ -167,7 +153,7 @@
     return [NSIndexPath indexPathForRow:index inSection:section];
 }
 
-- (NSArray<NSIndexPath *> *)indexPathesForModels:(NSArray<id <BLCellNodeViewModelProtocol>> *)models inSectionModel:(BLSectionModel *)sectionModel {
+- (NSArray<NSIndexPath *> *)indexPathesForModels:(NSArray<id <HHCellNodeModelProtocol>> *)models inSectionModel:(HHSectionModel *)sectionModel {
     if (!models.count) {
         return @[];
     }
@@ -181,7 +167,7 @@
     return [indexPathes copy];
 }
 
-- (nullable id <BLCellNodeViewModelProtocol>)modelForIndexPath:(NSIndexPath *)indexPath {
+- (nullable id <HHCellNodeModelProtocol>)modelForIndexPath:(NSIndexPath *)indexPath {
     if (![self isValidIndexPath:indexPath]) {
         return nil;
     }
@@ -189,7 +175,7 @@
     return self.sectionModels[indexPath.section].models[indexPath.row];
 }
 
-- (nullable id <BLCellNodeViewModelProtocol>)shownModelForIndexPath:(NSIndexPath *)indexPath {
+- (nullable id <HHCellNodeModelProtocol>)shownModelForIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section >= self.shownSectionModels.count) {
         return nil;
     }
@@ -220,15 +206,15 @@
     return self.internalSectionModels[section].models.count;
 }
 
-- (NSUInteger)modelCountForSectionModel:(BLSectionModel *)sectionModel {
+- (NSUInteger)modelCountForSectionModel:(HHSectionModel *)sectionModel {
     return sectionModel.models.count;
 }
 
-- (NSArray<BLSectionModel *> *)sectionModels {
+- (NSArray<HHSectionModel *> *)sectionModels {
     return [self.internalSectionModels copy];
 }
 
-- (nullable BLSectionModel *)sectionModelForSection:(NSInteger)section {
+- (nullable HHSectionModel *)sectionModelForSection:(NSInteger)section {
     if (![self isValidSection:section]) {
         return nil;
     }
@@ -236,7 +222,7 @@
     return self.internalSectionModels[section];
 }
 
-- (NSUInteger)sectionForSectionModel:(BLSectionModel *)sectionModel {
+- (NSUInteger)sectionForSectionModel:(HHSectionModel *)sectionModel {
     if (!sectionModel) {
         return NSNotFound;
     }
@@ -250,7 +236,7 @@
     return index;
 }
 
-- (BOOL)sectionExists:(BLSectionModel *)sectionModel {
+- (BOOL)sectionExists:(HHSectionModel *)sectionModel {
     return [self sectionForSectionModel:sectionModel] != NSNotFound;
 }
 
@@ -280,11 +266,11 @@
 
 #pragma mark - data monitoring
 - (void)willFetchChangedData {
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj,
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj,
                                                              NSUInteger idx,
                                                              BOOL * _Nonnull stop) {
         if (obj.justPerformReloadTotally) {
-            [self.dataMonitor operateModel:obj operationType:BLSectionModelOperationTypeUpdate];
+            [self.dataMonitor operateModel:obj operationType:HHDataOperationTypeUpdate];
             [obj didFetchChangedData];
         } else {
             [obj willFetchChangedData];
@@ -296,7 +282,7 @@
 
 - (void)didFetchChangedData {
     [self.dataMonitor didFetchChangedData];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         [obj didFetchChangedData];
     }];
 }
@@ -305,7 +291,7 @@
     self.shownSectionModels = self.toBeSynchronizedSectionModels;
     self.toBeSynchronizedSectionModels = nil;
     [self.dataMonitor dataDidSynchronizeToUI];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         [obj dataDidSynchronizeToUI];
     }];
 }
@@ -313,14 +299,14 @@
 - (void)dataWillSynchronizeToUI {
     self.toBeSynchronizedSectionModels = self.internalSectionModels;
     [self.dataMonitor dataWillSynchronizeToUI];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         [obj dataWillSynchronizeToUI];
     }];
 }
 
 - (NSArray<NSIndexPath *> *)deletedIndexPathes {
     __block NSMutableArray<NSIndexPath *> *indexPathes = [@[] mutableCopy];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSUInteger section = [self.dataMonitor indexForModelInPreviousState:obj];
         if (section == NSNotFound) {
             return;
@@ -335,7 +321,7 @@
 
 - (NSArray<NSIndexPath *> *)updatedIndexPathes {
     __block NSMutableArray<NSIndexPath *> *indexPathes = [@[] mutableCopy];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSUInteger section = [self.dataMonitor indexForModelInPreviousState:obj];
         if (section == NSNotFound) {
             return;
@@ -350,7 +336,7 @@
 
 - (NSArray<NSIndexPath *> *)insertedIndexPathes {
     __block NSMutableArray<NSIndexPath *> *indexPathes = [@[] mutableCopy];
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSUInteger section = [self sectionForSectionModel:obj];
         if (section == NSNotFound) {
             return;
@@ -385,7 +371,7 @@
 
 - (BOOL)isDataChanged {
     __block BOOL changed = NO;
-    [self.internalSectionModels enumerateObjectsUsingBlock:^(BLSectionModel *obj, NSUInteger idx, BOOL *stop) {
+    [self.internalSectionModels enumerateObjectsUsingBlock:^(HHSectionModel *obj, NSUInteger idx, BOOL *stop) {
         changed = changed ?: obj.isDataChanged;
     }];
     changed = changed ?: self.dataMonitor.isDataChanged;

@@ -1,27 +1,26 @@
 //
-//  BLDataMonitor.m
-//  BLKit
+//  HHDataMonitor.m
+//  HHListKit
 //
-//  Created by 黄泽宇 on 26/03/2018.
+//  Created by shelllhue on 26/03/2018.
 //
 
-#import "BLDataMonitor.h"
-@interface BLDataMonitor ()
+#import "HHDataMonitor.h"
+@interface HHDataMonitor ()
 
-@property (nonatomic, copy) NSArray *previousModels;
+@property (nonatomic, copy, nullable) NSArray *previousModels;
+@property (nonatomic, strong) NSMutableArray *currentModels;
 
-@property (nonatomic) NSMutableArray *currentModels;
+@property (nonatomic, strong) NSMutableArray *deletedModels;
+@property (nonatomic, strong) NSMutableArray *updatedModels;
+@property (nonatomic, strong) NSMutableArray *insertedModels;
 
-@property (nonatomic) NSMutableArray *deletedModels;
-@property (nonatomic) NSMutableArray *updatedModels;
-@property (nonatomic) NSMutableArray *insertedModels;
-
-@property (nonatomic, copy) NSIndexSet *deletedIndexes;
-@property (nonatomic, copy) NSIndexSet *updatedIndexes;
-@property (nonatomic, copy) NSIndexSet *insertedIndexes;
+@property (nonatomic, copy, nullable) NSIndexSet *deletedIndexes;
+@property (nonatomic, copy, nullable) NSIndexSet *updatedIndexes;
+@property (nonatomic, copy, nullable) NSIndexSet *insertedIndexes;
 
 @end
-@implementation BLDataMonitor
+@implementation HHDataMonitor
 - (instancetype)initWithMonitoredModels:(NSMutableArray *)monitoredModels {
     self = [super init];
     if (self) {
@@ -85,13 +84,13 @@
     
 }
 
-- (void)operateModel:(id)model operationType:(BLSectionModelOperationType)operationType {
-    // 每次对model进行更新、删除、插入操作，都需要判断该model是否已经被更新、删除或者插入，确保一个model只处于一个状态
+- (void)operateModel:(id)model operationType:(HHDataOperationType)operationType {
+    // Every operated model should be checked so that every model is assured to be in just one operated state
     if (!model) {
         return;
     }
     switch (operationType) {
-        case BLSectionModelOperationTypeInsert: {
+        case HHDataOperationTypeInsert: {
             if ([self modelExists:model inArray:self.insertedModels]) {
                 return;
             }
@@ -99,40 +98,35 @@
             NSUInteger indexForUpdating = [self indexForModel:model inArray:self.updatedModels];
             NSUInteger indexForDeleting = [self indexForModel:model inArray:self.deletedModels];
             if (indexForDeleting != NSNotFound) {
-                // 此种情况属于，先删除，再添加，有可能属于位置移动，直接标记为整个section reload
+                // The model is first deleted and then added again, it may be moving operation which is not supported, so just marked as needing reload totally
                 [self.deletedModels removeObjectAtIndex:indexForDeleting];
                 self.justPerformReloadTotally = YES;
             }
             if (indexForUpdating != NSNotFound) {
-                NSAssert(NO, @"刚更新，接着就添加，此种情况不存在，currentModels有model存在时，无法再次添加");
                 [self.updatedModels removeObjectAtIndex:indexForUpdating];
             }
         }
             break;
-        case BLSectionModelOperationTypeUpdate: {
+        case HHDataOperationTypeUpdate: {
             if ([self modelExists:model inArray:self.updatedModels]) {
                 return;
             }
             NSUInteger indexForInserting = [self indexForModel:model inArray:self.insertedModels];
             NSUInteger indexForDeleting = [self indexForModel:model inArray:self.deletedModels];
             if (indexForDeleting != NSNotFound) {
-                NSAssert(NO, @"刚删除，又立马更新，此种情况不存在");
                 [self.deletedModels removeObjectAtIndex:indexForDeleting];
             }
             if (indexForInserting == NSNotFound) {
                 [self.updatedModels addObject:model];
-            } else {
-                // 属于刚添加，就更新model的情况，此种情况存在，但不能算作update，应该算作insert
             }
         } break;
-        case BLSectionModelOperationTypeDelete: {
+        case HHDataOperationTypeDelete: {
             if ([self modelExists:model inArray:self.deletedModels]) {
                 return;
             }
             NSUInteger indexForInserting = [self indexForModel:model inArray:self.insertedModels];
             NSUInteger indexForUpdating = [self indexForModel:model inArray:self.updatedModels];
             if (indexForInserting != NSNotFound) {
-                // 刚添加，接着就删除，此时应该没有任何变化
                 [self.insertedModels removeObjectAtIndex:indexForInserting];
             } else {
                 [self.deletedModels addObject:model];
