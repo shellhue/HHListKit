@@ -206,14 +206,14 @@ typedef void (^HHCollectionNodeBatchUpdatingBlock)(BOOL finished);
             return  header;
         } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
             if (@available(iOS 11.0, *)) {
-                sectionModel.header.layer.zPosition = 0;
+                sectionModel.headerNode.layer.zPosition = 0;
             }
-            return  sectionModel.header;
+            return  sectionModel.headerNode;
         } else if (sectionModel.headerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
             if (@available(iOS 11.0, *)) {
-                sectionModel.header.layer.zPosition = 0;
+                sectionModel.headerNode.layer.zPosition = 0;
             }
-            return  sectionModel.header;
+            return  sectionModel.headerNode;
         }
     } else if (kind == UICollectionElementKindSectionFooter) {
         if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightSpacer) {
@@ -221,9 +221,9 @@ typedef void (^HHCollectionNodeBatchUpdatingBlock)(BOOL finished);
             footer.backgroundColor = sectionModel.footerSpacerColor;
             return  footer;
         } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeFixedHeightNode) {
-            return  sectionModel.footer;
+            return  sectionModel.footerNode;
         } else if (sectionModel.footerType == HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode) {
-            return  sectionModel.footer;
+            return  sectionModel.footerNode;
         }
     }
     

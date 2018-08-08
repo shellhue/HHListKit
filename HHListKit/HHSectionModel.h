@@ -31,6 +31,12 @@ typedef NS_ENUM(NSUInteger, HHSectionModelFooterHeaderType) {
     HHSectionModelFooterHeaderTypeFixedHeightNode,
     
     /**
+     * Fixed height header(footer) type, header(footer) view and its fixed height should be supplied
+     * Used with table node
+     */
+    HHSectionModelFooterHeaderTypeFixedHeightView,
+    
+    /**
      * Height self calculated header(footer) type, header(footer) node should be supplied
      */
     HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode,
@@ -75,7 +81,13 @@ typedef NS_ENUM(NSUInteger, HHSectionModelFooterHeaderType) {
 /**
  * Header node
  */
-@property (nonatomic, strong, nullable) ASCellNode *header;
+@property (nonatomic, strong, nullable) ASCellNode *headerNode;
+
+/**
+ * Header view
+ * used with table node
+ */
+@property (nonatomic, strong, nullable) UIView *headerView;
 
 /**
  * Fixed header height
@@ -95,7 +107,13 @@ typedef NS_ENUM(NSUInteger, HHSectionModelFooterHeaderType) {
 /**
  * Footer node
  */
-@property (nonatomic, strong, nullable) ASCellNode *footer;
+@property (nonatomic, strong, nullable) ASCellNode *footerNode;
+
+/**
+ * Footer view
+ * used with table node
+ */
+@property (nonatomic, strong, nullable) UIView *footerView;
 
 /**
  * Fixed footer height
@@ -212,6 +230,20 @@ typedef NS_ENUM(NSUInteger, HHSectionModelFooterHeaderType) {
                       headerColor:(nullable UIColor *)headerColor
                      footerHeight:(CGFloat)footerHeight
                       footerColor:(nullable UIColor *)footerColor;
+
+/**
+ * Add fixed height header or footer view
+ * used with table node
+ *
+ * @param header Header view
+ * @param headerHeight Header view height
+ * @param footer Footer view
+ * @param footerHeight Footer height
+ */
+- (void)configureWithHeaderView:(nullable UIView *)header
+                   headerHeight:(CGFloat)headerHeight
+                     footerView:(nullable UIView *)footer
+                   footerHeight:(CGFloat)footerHeight;
 
 /**
  * Add height self calculated header(footer)

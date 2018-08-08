@@ -159,16 +159,33 @@
     }
 }
 
+- (void)configureWithHeaderView:(nullable UIView *)header
+                   headerHeight:(CGFloat)headerHeight
+                     footerView:(nullable UIView *)footer
+                   footerHeight:(CGFloat)footerHeight {
+    if (header) {
+        self.headerType = HHSectionModelFooterHeaderTypeFixedHeightView;
+        self.headerView = header;
+        self.headerHeight = headerHeight;
+    }
+    
+    if (footer) {
+        self.footerType = HHSectionModelFooterHeaderTypeFixedHeightView;
+        self.footerHeight = footerHeight;
+        self.footerView = footer;
+    }
+}
+
 - (void)configureWithHeaderNode:(nullable ASCellNode *)header
                      footerNode:(nullable ASCellNode *)footer {
     if (header) {
         self.headerType = HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode;
-        self.header = header;
+        self.headerNode = header;
     }
     
     if (footer) {
         self.footerType = HHSectionModelFooterHeaderTypeHeightSelfCalculatedNode;
-        self.footer = footer;
+        self.footerNode = footer;
     }
 }
 #pragma mark - data query
