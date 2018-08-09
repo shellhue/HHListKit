@@ -1,0 +1,10 @@
+platform :ios,'8.0'
+#use_frameworks!
+
+# 超级品牌的基础抽象 target
+target 'HHListKit' do
+  pod 'HHListKit' :path=>'./..'
+  pod 'Texture/Core'
+  pod 'Aspects'
+
+end
