@@ -1,0 +1,8 @@
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
+HEADER_SEARCH_PATHS = $(inherited) "${PODS_ROOT}/Headers/Public" "${PODS_ROOT}/Headers/Public/Aspects" "${PODS_ROOT}/Headers/Public/HHListKit" "${PODS_ROOT}/Headers/Public/Texture"
+LIBRARY_SEARCH_PATHS = $(inherited) "$PODS_CONFIGURATION_BUILD_DIR/Aspects" "$PODS_CONFIGURATION_BUILD_DIR/HHListKit" "$PODS_CONFIGURATION_BUILD_DIR/Texture"
+OTHER_CFLAGS = $(inherited) -isystem "${PODS_ROOT}/Headers/Public" -isystem "${PODS_ROOT}/Headers/Public/Aspects" -isystem "${PODS_ROOT}/Headers/Public/HHListKit" -isystem "${PODS_ROOT}/Headers/Public/Texture"
+OTHER_LDFLAGS = $(inherited) -ObjC -l"Aspects" -l"HHListKit" -l"Texture" -l"c++" -framework "CoreFoundation" -framework "UIKit" -weak_framework "AssetsLibrary" -weak_framework "MapKit" -weak_framework "Photos"
+PODS_BUILD_DIR = $BUILD_DIR
+PODS_CONFIGURATION_BUILD_DIR = $PODS_BUILD_DIR/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)
+PODS_ROOT = ${SRCROOT}/Pods

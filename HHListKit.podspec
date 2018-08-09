@@ -5,8 +5,8 @@ Pod::Spec.new do |s|
   s.license      = { :type => 'MIT', :file => 'LICENSE' }
   s.authors      = { 'shellhue' => 'shellhue@gmail.com' }
   s.homepage     = 'https://github.com/shellhue/HHListKit'
-  s.platform     = :ios, '8.0'
-  s.ios.deployment_target = '8.0'
+  s.platform     = :ios, '9.0'
+  s.ios.deployment_target = '9.0'
   s.source       = { :git => 'https://github.com/shellhue/HHListKit.git', :tag => s.version.to_s }
   
   s.requires_arc = true
@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   
   s.frameworks = 'UIKit', 'CoreFoundation'
 
-  s.dependency "Texture/core", "~> 2.7"
+  s.dependency "Texture/Core", "~> 2.7"
   s.dependency "Aspects", "~> 1.3.0"
 
 end

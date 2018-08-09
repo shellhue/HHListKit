@@ -64,7 +64,7 @@ typedef void (^HHTableNodeBatchUpdatingBlock)(BOOL finished);
             node.frame = UIScreen.mainScreen.bounds;
             
             HHTableNodeWrapper * __weak weakSelf = self;
-            [node.view aspect_hookSelector:@selector(reloadData) withOptions:AspectPositionInstead usingBlock:^{
+            [node.view aspect_hookSelector:@selector(reloadData) withOptions:AspectPositionInstead usingBlock:^(id instance, NSArray *args) {
                 [weakSelf reloadData];
             } error:nil];
             

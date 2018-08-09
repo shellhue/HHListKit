@@ -67,7 +67,7 @@ typedef void (^HHCollectionNodeBatchUpdatingBlock)(BOOL finished);
             node.frame = UIScreen.mainScreen.bounds;
             
             HHCollectionNodeWrapper * __weak weakSelf = self;
-            [node.view aspect_hookSelector:@selector(reloadData) withOptions:AspectPositionInstead usingBlock:^{
+            [node.view aspect_hookSelector:@selector(reloadData) withOptions:AspectPositionInstead usingBlock:^(id instance, NSArray *args) {
                 [weakSelf reloadData];
             } error:nil];
             
