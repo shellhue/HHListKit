@@ -6,7 +6,7 @@ A data-driven ASCollectionNode and ASTableNode extension for building fast and f
 Main Features
 ==============
 
-- Smooth asynchronous user interfaces due to texture backed
+- Smooth asynchronous user interfaces due to texture backing
 - Never need call `performBatchUpdates(_:, completion:)` or `reloadData()` again
 - Manage section easily
 - Create lists with multiple data types
