@@ -331,14 +331,14 @@ typedef void (^HHCollectionNodeBatchUpdatingBlock)(BOOL finished);
     }
 }
 
-- (void)enableAutoupdate {
+- (void)enableAutoupdateWithAutoupdatingAnimated:(BOOL)animated {
     if (_runLoopObserver) {
         return;
     }
     // add runloop monitor
     HHCollectionNodeWrapper * __weak weakSelf = self;
     _runLoopObserver = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopBeforeWaiting | kCFRunLoopExit, YES, 0, ^(CFRunLoopObserverRef observer, CFRunLoopActivity activity) {
-        [weakSelf performUpdates];
+        [weakSelf performUpdatesWithAnimated:animated];
     });
     
     CFRunLoopAddObserver(CFRunLoopGetMain(), _runLoopObserver,  kCFRunLoopCommonModes);

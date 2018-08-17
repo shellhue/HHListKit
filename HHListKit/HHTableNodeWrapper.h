@@ -63,9 +63,10 @@ typedef void (^HHTableNodeUpdateCompletion)(BOOL finished);
 - (void)disableAutoupdate;
 
 /**
- * enable auto update
+ * Enable auto update
+ * @param animated Whether should animate the auto update
  */
-- (void)enableAutoupdate;
+- (void)enableAutoupdateWithAutoupdatingAnimated:(BOOL)animated;
 
 #pragma mark - update view
 

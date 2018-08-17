@@ -31,7 +31,7 @@
                                                 containingViewController:self
                                                            tableDelegate:nil
                                                          tableDataSource:nil];
-        [self.wrapper enableAutoupdate];
+        [self.wrapper enableAutoupdateWithAutoupdatingAnimated:NO];
     }
     return self;
 }
