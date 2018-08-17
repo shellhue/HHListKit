@@ -21,4 +21,4 @@ Requirements
 License
 ==============
 
-`IGListKit` is MIT-licensed.
+`HHListKit` is MIT-licensed.
