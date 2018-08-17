@@ -14,12 +14,18 @@ Main Features
 Usage
 ==============
 
-1. First create list wrapper and layout the wrapped list node
+#### 1. Firstly, create list wrapper and layout the wrapped list node
 ```objc
 @interface ViewController ()
-@property (nonatomic) HHTableNodeWrapper *wrapper; // the list wrapper
+@property (nonatomic) HHTableNodeWrapper *listWrapper; // the list wrapper
 @property (nonatomic) HHSectionController *sectionController; // the binded section controller
 
+// saved section which will change dynamicly
+@property (nonatomic) HHSectionModel *middleSection;
+@property (nonatomic) HHSectionModel *walletSection;
+
+// saved model that will change dynamicly
+@property (nonatomic) HHSettingCommonModel *walletModel;
 @end
 
 @implementation ViewController
@@ -27,11 +33,11 @@ Usage
     self = [super initWithNode:[ASDisplayNode new]];
     if (self) {
         _sectionController = [HHSectionController new];
-        _wrapper = [[HHTableNodeWrapper alloc] initWithSectionController:self.sectionController
+        _listWrapper = [[HHTableNodeWrapper alloc] initWithSectionController:self.sectionController
                                                 containingViewController:self
                                                            tableDelegate:nil
                                                          tableDataSource:nil];
-        [self.wrapper enableAutoupdateWithAutoupdatingAnimated:NO]; // enable autoupdate
+        [self.listWrapper enableAutoupdateWithAutoupdatingAnimated:NO]; // enable autoupdate
     }
     return self;
 }
@@ -39,20 +45,21 @@ Usage
 - (void)viewDidLoad {
     [super viewDidLoad];
     // add the wrapped list node to supernode
-    [self.node addSubnode:self.wrapper.tableNode];
+    [self.node addSubnode:self.listWrapper.tableNode];
 
 }
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     // layout the wrapped list node
-    self.wrapper.tableNode.frame = self.node.bounds;
+    self.listWrapper.tableNode.frame = self.node.bounds;
     
 }
 @end
 ```
 
-2. configure sections
+
+#### 2. Secondly, configure sections
 ```objc
 @implementation ViewController
 // ...
@@ -64,7 +71,6 @@ Usage
 
 - (void)configureSections {
     HHSectionModel *avatarSection = ({
-        // You can init the section model with cell node creator block and cell tap action, and the cell model needn't implement HHCellNodeModelProtocol.
         HHSectionModel *section = [HHSectionModel sectionModelWithCellNodeCreatorBlock:^HHCellNode *(SettingViewController *containingVC, id<HHCellNodeModelProtocol> model) {
             return [HHSettingAvatarCellNode new];
         } cellNodeTapAction:^(SettingViewController *containingVC, id<HHCellNodeModelProtocol> model) {
@@ -76,19 +82,18 @@ Usage
         section;
     });
     
-    HHSectionModel *walletSection = ({
+    self.walletSection = ({
         HHSectionModel *section = [HHSectionModel new];
         [section configureWithHeaderHeight:0
                               footerHeight:20];
-        // since section model is not inited with cell node creator block and cell tap action, the cell model has to implement HHCellNodeModelProtocol.
-        HHSettingCommonModel *walletModel = [[HHSettingCommonModel alloc] initWithName:@"钱包" iconName:@"wallet" tapAction:^{
+        self.walletModel = [[HHSettingCommonModel alloc] initWithName:@"钱包" iconName:@"wallet" tapAction:^{
             NSLog(@"Wallet is tapped");
         }];
-        [section appendNewModel:walletModel];
+        [section appendNewModel:self.walletModel];
         section;
     });
     
-    HHSectionModel *middleSection = ({
+    self.middleSection = ({
         HHSectionModel *section = [HHSectionModel new];
         [section configureWithHeaderHeight:0
                               footerHeight:20];
@@ -118,15 +123,18 @@ Usage
     });
     
     [self.sectionController appendSectionModel:avatarSection];
-    [self.sectionController appendSectionModel:walletSection];
-    [self.sectionController appendSectionModel:middleSection];
+    [self.sectionController appendSectionModel:self.walletSection];
+    [self.sectionController appendSectionModel:self.middleSection];
     [self.sectionController appendSectionModel:settingSection];
 }
 @end
 ```
 
-3. cell model implement `HHCellNodeModelProtocol`
-// You can initialize the section model with cell node creator block and cell tap action, then the cell model needn't implement `HHCellNodeModelProtocol`. Otherwise the cell model has to implement `HHCellNodeModelProtocol`
+
+#### 3. Thirdly, cell model implement `HHCellNodeModelProtocol`
+
+Section model can be initialized with cell node creator block and cell tap action, then the cell model needn't implement `HHCellNodeModelProtocol`. Otherwise the cell model has to implement `HHCellNodeModelProtocol`
+
 ```objc
 @implementation HHSettingCommonModel
 - (HHCellNodeBlock)cellNodeBlock {
@@ -142,6 +150,25 @@ Usage
 }
 @end
 ```
+
+#### 4. Fourthly, delete/insert/update cell
+
+It is very common to delete/insert/update cell dynamicly. It's easy to do this. But first, you should save the changed section model and cell model to a property. Then just insert/delete/update the corresponding cell model in that section model.
+
+```objc
+- (void)didTapAdd {
+    [self.middleSection appendNewModel:[[HHSettingCommonModel alloc] initWithName:@"收藏" iconName:@"collect" tapAction:^{
+        NSLog(@"Collect is tapped");
+    }]];
+}
+
+- (void)didTapRefresh {
+    self.walletModel.name = @"钱包updated";
+    [self.walletSection markModelNeedsReload:self.walletModel];
+}
+```
+
+If autoupdate is enabled, insert/delete cell model will be synchronized to UI automaticaly. But you should mark the updated model needs reload instead. Just like above.
 
 Installation
 ==============
