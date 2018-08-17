@@ -14,7 +14,7 @@ Main Features
 Usage
 ==============
 
-#### 1. Firstly, create list wrapper and layout the wrapped list node
+### 1. create list wrapper and layout the wrapped list node
 ```objc
 @interface ViewController ()
 @property (nonatomic) HHTableNodeWrapper *listWrapper; // the list wrapper
@@ -59,7 +59,7 @@ Usage
 ```
 
 
-#### 2. Secondly, configure sections
+### 2. configure sections
 ```objc
 @implementation ViewController
 // ...
@@ -131,7 +131,7 @@ Usage
 ```
 
 
-#### 3. Thirdly, cell model implement `HHCellNodeModelProtocol`
+### 3. cell model implement `HHCellNodeModelProtocol`
 
 Section model can be initialized with cell node creator block and cell tap action, then the cell model needn't implement `HHCellNodeModelProtocol`. Otherwise the cell model has to implement `HHCellNodeModelProtocol`
 
@@ -151,7 +151,7 @@ Section model can be initialized with cell node creator block and cell tap actio
 @end
 ```
 
-#### 4. Fourthly, delete/insert/update cell
+### 4. delete/insert/update cell
 
 It is very common to delete/insert/update cell dynamicly. It's easy to do this. But first, you should save the changed section model and cell model to a property. Then just insert/delete/update the corresponding cell model in that section model.
 
@@ -168,7 +168,12 @@ It is very common to delete/insert/update cell dynamicly. It's easy to do this. 
 }
 ```
 
-If autoupdate is enabled, insert/delete cell model will be synchronized to UI automaticaly. But you should mark the updated model needs reload instead. Just like above.
+If autoupdate is enabled, insert/delete/update cell model will be synchronized to UI automaticaly. Except that updated model should be marked needs reload handly. Just like above.
+
+If autoupdate is not enabled, 'performUpdate' should be called on the list wrapper. And updated model should be marked needs reload handly as well.
+
+You can see the completed project in the Demo project.
+
 
 Installation
 ==============
@@ -176,7 +181,6 @@ Installation
 1. Add `pod 'HHListKit'` to your Podfile.
 2. Run `pod install` or `pod update`.
 3. Import \<HHListKit/HHListKit.h\>.
-
 
 Requirements
 ==============
