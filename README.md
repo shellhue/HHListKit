@@ -170,7 +170,7 @@ It is very common to delete/insert/update cell dynamicly. It's easy to do this. 
 
 If autoupdate is enabled, insert/delete/update cell model will be synchronized to UI automaticaly. Except that updated model should be marked needs reload handly. Just like above.
 
-If autoupdate is not enabled, 'performUpdate' should be called on the list wrapper. And updated model should be marked needs reload handly as well.
+If autoupdate is not enabled, `performUpdate` should be called on the list wrapper. And updated model should be marked needs reload handly as well.
 
 You can see the completed project in the Demo project.
 
