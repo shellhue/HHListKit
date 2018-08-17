@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'HHListKit'
-  s.summary      = 'Friend extension for ASCollectionNode and ASTableNode to make them easy to use'
+  s.summary      = 'A data-driven ASCollectionNode and ASTableNode wrapper for building fast and flexible lists'
   s.version      = '0.0.1'
   s.license      = { :type => 'MIT', :file => 'LICENSE' }
   s.authors      = { 'shellhue' => 'shellhue@gmail.com' }
